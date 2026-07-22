@@ -63,7 +63,7 @@ end
 
 local url
 if game.PlaceId == 292439477 then
-    url = "https://raw.githubusercontent.com/SamPeter122/Furry-Script/main/didddY-Script-PF%20Loader.lua"
+    url = "https://raw.githubusercontent.com/SamPeter122/Furry-Script/main/PF_Loader.lua"
 else
     url = "https://raw.githubusercontent.com/SamPeter122/Furry-Script/main/UWU%20Loader.lua"
 end
