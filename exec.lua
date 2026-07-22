@@ -62,7 +62,7 @@ LP_CUSTOM_LOADER = function(stepOrTime)
 end
 
 local url
-if lp_script == "pf" then
+if game.PlaceId == 292439477 then
     url = "https://raw.githubusercontent.com/SamPeter122/Furry-Script/main/didddY-Script-PF%20Loader.lua"
 else
     url = "https://raw.githubusercontent.com/SamPeter122/Furry-Script/main/UWU%20Loader.lua"
