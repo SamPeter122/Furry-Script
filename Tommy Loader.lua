@@ -846,9 +846,9 @@ local Env = _G
 pcall(function() if getgenv then Env = getgenv() end end)
 
 if Built and type(UI) == "table" and type(UI.Step) == "function" then
-	Env.LP_CUSTOM_LOADER = function(...)
-		pcall(UI.Step, ...)
-	end
+	-- this LuaProt build breaks when LP_CUSTOM_LOADER is defined, so we never set it;
+	-- the loader instead watches for the menu to appear (UI.AwaitMenu) and finishes then
+	pcall(function() Env.LP_CUSTOM_LOADER = nil end)
 	Env.__tb_loader_ui = UI
 	local Needed = { "hookmetamethod", "hookfunction", "getgc", "getconnections", "getnamecallmethod", "newcclosure", "getrawmetatable" }
 	local Missing = 0
@@ -861,7 +861,7 @@ if Built and type(UI) == "table" and type(UI.Step) == "function" then
 	end
 else
 	pcall(warn, "[tomboy.loader] ui failed: " .. tostring(UI))
-	Env.LP_CUSTOM_LOADER = function() end
+	pcall(function() Env.LP_CUSTOM_LOADER = nil end)
 	Env.__tb_loader_ui = nil
 end
 
@@ -919,5 +919,6 @@ if not Run then
 	return
 end
 
+if UI then pcall(UI.AwaitMenu, 45) end
 local Ok = pcall(Run)
 if not Ok and UI then pcall(UI.Reject, "Script failed to start") end
