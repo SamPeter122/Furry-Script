@@ -497,16 +497,53 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 		Tween(Value, {Value = Amount}, Time or 0.5, QUINT)
 	end
 
-	local Dirty = true
-	local NextSweep = 0
-	for _, Container in Containers do
+	-- the menu's guis are held hidden while the loader plays out and handed back
+	-- (with whatever Enabled the menu last asked for) once the loader starts fading
+	local Holding = false
+	local Released = false
+	local Held = {}
+	local HeldConns = {}
+
+	local function Hold(Gui)
+		if Released or Held[Gui] ~= nil then return end
+		Held[Gui] = Gui.Enabled
+		local Own = 0
+		local function Hide()
+			if Gui.Enabled then
+				Own = Own + 1
+				pcall(function() Gui.Enabled = false end)
+			end
+		end
 		pcall(function()
-			table.insert(Conns, Container.ChildAdded:Connect(function() Dirty = true end))
+			table.insert(HeldConns, Gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if Released then return end
+				if not Gui.Enabled and Own > 0 then
+					Own = Own - 1
+					return
+				end
+				Held[Gui] = Gui.Enabled
+				Hide()
+			end))
 		end)
+		Hide()
+	end
+
+	local function Release()
+		if Released then return end
+		Released = true
+		for _, Connection in HeldConns do
+			pcall(function() Connection:Disconnect() end)
+		end
+		HeldConns = {}
+		for Gui, Wanted in Held do
+			pcall(function()
+				if Gui.Parent then Gui.Enabled = Wanted end
+			end)
+		end
+		Held = {}
 	end
 
 	local function ScanOnce()
-		if Found then return end
 		for _, Container in Containers do
 			local Ok, Kids = pcall(Container.GetChildren, Container)
 			if Ok then
@@ -514,11 +551,22 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 					if not Known[Child] and Child ~= Holder and #Child.Name == 0
 						and Child:IsA("ScreenGui") and Child:GetAttribute("__tbloader") == nil then
 						Found = true
-						return
+						if Holding then Hold(Child) end
 					end
 				end
 			end
 		end
+	end
+
+	local Dirty = true
+	local NextSweep = 0
+	for _, Container in Containers do
+		pcall(function()
+			table.insert(Conns, Container.ChildAdded:Connect(function()
+				Dirty = true
+				if Holding and not Released then task.defer(function() pcall(ScanOnce) end) end
+			end))
+		end)
 	end
 
 	local function Disconnect()
@@ -535,6 +583,7 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 		Alive = false
 		Torn = true
 		Queue = {}
+		Release()
 		pcall(function() if Blur then Blur:Destroy() end end)
 		pcall(function() if Holder then Holder:Destroy() end end)
 		task.defer(Disconnect)
@@ -598,6 +647,7 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 		if Torn then return end
 		Torn = true
 		Alive = false
+		Release()
 
 		Tween(View, {ImageTransparency = 1}, 0.5)
 		Tween(RuleLine, {Size = UDim2New(0, 0, 0, 1)}, 0.45, QUINT, IN)
@@ -791,6 +841,7 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 	function API.AwaitMenu(Timeout)
 		if Awaiting or Done or not Alive then return end
 		Timeout = tonumber(Timeout) or 45
+		Holding = true
 		At(0, function()
 			if Awaiting or Done or not Alive then return end
 			SetStatus("Loading script")
