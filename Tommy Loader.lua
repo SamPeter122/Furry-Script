@@ -583,7 +583,7 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 		Alive = false
 		Torn = true
 		Queue = {}
-		Release()
+		task.delay(0.4, Release)
 		pcall(function() if Blur then Blur:Destroy() end end)
 		pcall(function() if Holder then Holder:Destroy() end end)
 		task.defer(Disconnect)
@@ -647,7 +647,6 @@ local Builder = (function() LPH_ATTRIBUTES(VM(NONE))
 		if Torn then return end
 		Torn = true
 		Alive = false
-		Release()
 
 		Tween(View, {ImageTransparency = 1}, 0.5)
 		Tween(RuleLine, {Size = UDim2New(0, 0, 0, 1)}, 0.45, QUINT, IN)
